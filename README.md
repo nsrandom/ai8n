@@ -68,7 +68,8 @@ The system uses SQLite with the following tables:
 - `Workflows`: Workflow definitions
 - `Node`: Individual workflow nodes
 - `Connections`: Node connections (edges in the DAG)
-- `Executions`: Execution records and results
+- `WorkflowExecutions`: Workflow-level execution records and results
+- `NodeExecutions`: Node-level execution records and results within workflows
 
 ## Testing
 

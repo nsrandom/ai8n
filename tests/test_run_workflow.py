@@ -137,7 +137,7 @@ class TestWorkflowExecutor(unittest.TestCase):
         result = self.executor.execute_command_node(node, {'input': 'test'}, {'command': 'echo hello'})
         
         self.assertTrue(result['success'])
-        self.assertEqual(result['output'], {'input': 'test'})
+        self.assertEqual(result['output'], 'hello\n')
         self.assertIn('Command node Test Command executed successfully', result['message'])
     
     def test_execute_constant_node(self):
@@ -195,9 +195,9 @@ class TestWorkflowExecutor(unittest.TestCase):
             self.assertEqual(result['error'], 'Test error')
             self.assertIsNone(result['output'])
     
-    def test_create_execution_record(self):
-        """Test creating execution record."""
-        execution_id = self.executor.create_execution_record(1, 1, 1, "running", {"test": "input"}, {"test": "output"})
+    def test_create_workflow_execution(self):
+        """Test creating workflow execution record."""
+        execution_id = self.executor.create_workflow_execution(1, "running", {"test": "input"}, {"test": "output"})
         
         self.assertIsInstance(execution_id, int)
         self.assertGreater(execution_id, 0)
@@ -205,54 +205,71 @@ class TestWorkflowExecutor(unittest.TestCase):
         # Verify record was created
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM Executions WHERE id = ?", (execution_id,))
+            cursor.execute("SELECT * FROM WorkflowExecutions WHERE id = ?", (execution_id,))
             record = cursor.fetchone()
             self.assertIsNotNone(record)
             self.assertEqual(record[1], 1)  # workflow_id
-            self.assertEqual(record[2], 1)  # node_id
-            self.assertEqual(record[3], 1)  # run_index
-            self.assertEqual(record[4], "running")  # status
+            self.assertEqual(record[2], "running")  # status
     
-    def test_update_execution_record(self):
-        """Test updating execution record."""
-        execution_id = self.executor.create_execution_record(1, 1, 1, "running", {"test": "input"})
-        self.executor.update_execution_record(execution_id, "completed", {"result": "success"})
+    def test_create_node_execution(self):
+        """Test creating node execution record."""
+        # First create a workflow execution
+        workflow_execution_id = self.executor.create_workflow_execution(1, "running")
+        
+        node_execution_id = self.executor.create_node_execution(workflow_execution_id, 1, "running", {"test": "input"}, {"test": "output"})
+        
+        self.assertIsInstance(node_execution_id, int)
+        self.assertGreater(node_execution_id, 0)
+        
+        # Verify record was created
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM NodeExecutions WHERE id = ?", (node_execution_id,))
+            record = cursor.fetchone()
+            self.assertIsNotNone(record)
+            self.assertEqual(record[1], workflow_execution_id)  # workflow_execution_id
+            self.assertEqual(record[2], 1)  # node_id
+            self.assertEqual(record[3], "running")  # status
+    
+    def test_update_workflow_execution(self):
+        """Test updating workflow execution record."""
+        execution_id = self.executor.create_workflow_execution(1, "running", {"test": "input"})
+        self.executor.update_workflow_execution(execution_id, "completed", {"result": "success"})
         
         # Verify record was updated
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM Executions WHERE id = ?", (execution_id,))
+            cursor.execute("SELECT * FROM WorkflowExecutions WHERE id = ?", (execution_id,))
             record = cursor.fetchone()
-            self.assertEqual(record[4], "completed")  # status
-            self.assertIsNotNone(record[6])  # ended_at should be set
+            self.assertEqual(record[2], "completed")  # status
+            self.assertIsNotNone(record[4])  # ended_at should be set
     
-    def test_get_next_run_index(self):
-        """Test getting next run index for a node."""
-        # First run should be 1
-        run_index = self.executor.get_next_run_index(1, 1)
-        self.assertEqual(run_index, 1)
+    def test_update_node_execution(self):
+        """Test updating node execution record."""
+        workflow_execution_id = self.executor.create_workflow_execution(1, "running")
+        node_execution_id = self.executor.create_node_execution(workflow_execution_id, 1, "running", {"test": "input"})
+        self.executor.update_node_execution(node_execution_id, "completed", {"result": "success"})
         
-        # Create an execution record
-        self.executor.create_execution_record(1, 1, 1, "completed", {"input": "test"})
-        
-        # Next run should be 2
-        run_index = self.executor.get_next_run_index(1, 1)
-        self.assertEqual(run_index, 2)
-        
-        # Different node should still be 1
-        run_index = self.executor.get_next_run_index(1, 2)
-        self.assertEqual(run_index, 1)
+        # Verify record was updated
+        with sqlite3.connect(self.db_path) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM NodeExecutions WHERE id = ?", (node_execution_id,))
+            record = cursor.fetchone()
+            self.assertEqual(record[3], "completed")  # status
+            self.assertIsNotNone(record[5])  # ended_at should be set
+    
     
     def test_run_workflow_success(self):
         """Test successful workflow execution."""
         result = self.executor.run_workflow(1, {"initial": "test_data"})
         
         self.assertTrue(result['success'])
-        self.assertIn('execution_ids', result)
+        self.assertIn('workflow_execution_id', result)
+        self.assertIn('node_execution_ids', result)
         self.assertIn('results', result)
         self.assertIn('message', result)
         self.assertEqual(len(result['results']), 6)  # All 6 nodes executed
-        self.assertEqual(len(result['execution_ids']), 6)  # All 6 nodes have execution records
+        self.assertEqual(len(result['node_execution_ids']), 6)  # All 6 nodes have execution records
     
     def test_run_workflow_not_found(self):
         """Test workflow not found."""
@@ -481,17 +498,24 @@ class TestWorkflowExecutionIntegration(unittest.TestCase):
         # Verify results
         self.assertTrue(result['success'])
         self.assertEqual(len(result['results']), 3)
-        self.assertIn('execution_ids', result)
-        self.assertEqual(len(result['execution_ids']), 3)  # All 3 nodes have execution records
+        self.assertIn('workflow_execution_id', result)
+        self.assertIn('node_execution_ids', result)
+        self.assertEqual(len(result['node_execution_ids']), 3)  # All 3 nodes have execution records
         
-        # Verify execution records were created
+        # Verify workflow execution record was created
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM Executions WHERE workflow_id = ?", (1,))
-            executions = cursor.fetchall()
-            self.assertEqual(len(executions), 3)  # One record per node
-            for execution in executions:
-                self.assertEqual(execution[4], "completed")  # status
+            cursor.execute("SELECT * FROM WorkflowExecutions WHERE id = ?", (result['workflow_execution_id'],))
+            workflow_execution = cursor.fetchone()
+            self.assertIsNotNone(workflow_execution)
+            self.assertEqual(workflow_execution[2], "completed")  # status
+            
+            # Verify node execution records were created
+            cursor.execute("SELECT * FROM NodeExecutions WHERE workflow_execution_id = ?", (result['workflow_execution_id'],))
+            node_executions = cursor.fetchall()
+            self.assertEqual(len(node_executions), 3)  # One record per node
+            for execution in node_executions:
+                self.assertEqual(execution[3], "completed")  # status
     
     def test_parallel_workflow(self):
         """Test workflow with parallel execution paths."""
@@ -533,19 +557,24 @@ class TestWorkflowExecutionIntegration(unittest.TestCase):
         # Verify results
         self.assertTrue(result['success'])
         self.assertEqual(len(result['results']), 4)
-        self.assertEqual(len(result['execution_ids']), 4)  # All 4 nodes have execution records
+        self.assertEqual(len(result['node_execution_ids']), 4)  # All 4 nodes have execution records
         
         # Verify all nodes were executed
         executed_nodes = set(result['results'].keys())
         expected_nodes = {10, 11, 12, 13}
         self.assertEqual(executed_nodes, expected_nodes)
         
-        # Verify execution records were created
+        # Verify workflow and node execution records were created
         with sqlite3.connect(self.db_path) as conn:
             cursor = conn.cursor()
-            cursor.execute("SELECT * FROM Executions WHERE workflow_id = ?", (2,))
-            executions = cursor.fetchall()
-            self.assertEqual(len(executions), 4)  # One record per node
+            cursor.execute("SELECT * FROM WorkflowExecutions WHERE id = ?", (result['workflow_execution_id'],))
+            workflow_execution = cursor.fetchone()
+            self.assertIsNotNone(workflow_execution)
+            self.assertEqual(workflow_execution[2], "completed")  # status
+            
+            cursor.execute("SELECT * FROM NodeExecutions WHERE workflow_execution_id = ?", (result['workflow_execution_id'],))
+            node_executions = cursor.fetchall()
+            self.assertEqual(len(node_executions), 4)  # One record per node
 
 
 if __name__ == '__main__':

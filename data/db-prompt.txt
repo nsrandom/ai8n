@@ -26,11 +26,20 @@ Connections:
 	updated_at (timestamp)
 
 
-Executions:
+WorkflowExecutions:
 	id (primary key)
 	workflow_id (foreign key to Workflows)
+	status (text)
+	started_at (timestamp)
+	ended_at (timestamp)
+	input (json / text)
+	output (json / text)
+	error (json / text)
+
+NodeExecutions:
+	id (primary key)
+	workflow_execution_id (foreign key to WorkflowExecutions)
 	node_id (foreign key to Nodes)
-	run_index (int)
 	status (text)
 	started_at (timestamp)
 	ended_at (timestamp)

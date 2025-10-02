@@ -3,6 +3,8 @@ import json
 import logging
 import os
 import subprocess
+import argparse
+import sys
 from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime
 from collections import defaultdict, deque
@@ -190,47 +192,62 @@ class WorkflowExecutor:
             'message': f"Manual node {node['name']} executed successfully"
         }
     
-    def create_execution_record(self, workflow_id: int, node_id: int, run_index: int, status: str, input_data: Dict[str, Any] = None, output_data: Dict[str, Any] = None, error: str = None) -> int:
-        """Create an execution record for a specific node in the database."""
+    def create_workflow_execution(self, workflow_id: int, status: str, input_data: Dict[str, Any] = None, output_data: Dict[str, Any] = None, error: str = None) -> int:
+        """Create a workflow execution record in the database."""
         with self.get_db_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                INSERT INTO Executions (workflow_id, node_id, run_index, status, input, output, error)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            """, (workflow_id, node_id, run_index, status, 
+                INSERT INTO WorkflowExecutions (workflow_id, status, input, output, error)
+                VALUES (?, ?, ?, ?, ?)
+            """, (workflow_id, status, 
                   json.dumps(input_data) if input_data else None,
                   json.dumps(output_data) if output_data else None, 
                   error))
             return cursor.lastrowid
     
-    def update_execution_record(self, execution_id: int, status: str, output_data: Dict[str, Any] = None, error: str = None):
-        """Update an execution record in the database."""
+    def update_workflow_execution(self, workflow_execution_id: int, status: str, output_data: Dict[str, Any] = None, error: str = None):
+        """Update a workflow execution record in the database."""
         with self.get_db_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                UPDATE Executions 
+                UPDATE WorkflowExecutions 
                 SET status = ?, output = ?, error = ?, ended_at = CURRENT_TIMESTAMP
                 WHERE id = ?
-            """, (status, json.dumps(output_data) if output_data else None, error, execution_id))
+            """, (status, json.dumps(output_data) if output_data else None, error, workflow_execution_id))
     
-    def get_next_run_index(self, workflow_id: int, node_id: int) -> int:
-        """Get the next run index for a node in a workflow."""
+    def create_node_execution(self, workflow_execution_id: int, node_id: int, status: str, input_data: Dict[str, Any] = None, output_data: Dict[str, Any] = None, error: str = None) -> int:
+        """Create a node execution record in the database."""
         with self.get_db_connection() as conn:
             cursor = conn.cursor()
             cursor.execute("""
-                SELECT COALESCE(MAX(run_index), 0) + 1 
-                FROM Executions 
-                WHERE workflow_id = ? AND node_id = ?
-            """, (workflow_id, node_id))
-            result = cursor.fetchone()
-            return result[0] if result else 1
+                INSERT INTO NodeExecutions (workflow_execution_id, node_id, status, input, output, error)
+                VALUES (?, ?, ?, ?, ?, ?)
+            """, (workflow_execution_id, node_id, status, 
+                  json.dumps(input_data) if input_data else None,
+                  json.dumps(output_data) if output_data else None, 
+                  error))
+            return cursor.lastrowid
+    
+    def update_node_execution(self, node_execution_id: int, status: str, output_data: Dict[str, Any] = None, error: str = None):
+        """Update a node execution record in the database."""
+        with self.get_db_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE NodeExecutions 
+                SET status = ?, output = ?, error = ?, ended_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            """, (status, json.dumps(output_data) if output_data else None, error, node_execution_id))
+    
+    
     
     def run_workflow(self, workflow_id: int, initial_input: Dict[str, Any] = None) -> Dict[str, Any]:
         """Main function to run a workflow."""
         logger.info(f"Starting workflow execution for workflow_id: {workflow_id}")
         
-        # No longer create a single workflow-level execution record
-        # Each node will have its own execution record
+        # Create workflow-level execution record
+        workflow_execution_id = self.create_workflow_execution(
+            workflow_id, "running", initial_input
+        )
         
         try:
             # Fetch workflow details
@@ -267,26 +284,23 @@ class WorkflowExecutor:
             
             # Initialize with root nodes
             for root_node in root_nodes:
-                # Get run index for this node
-                run_index = self.get_next_run_index(workflow_id, root_node['id'])
-                
-                # Create execution record for this node
-                execution_id = self.create_execution_record(
-                    workflow_id, root_node['id'], run_index, "running", 
+                # Create node execution record
+                node_execution_id = self.create_node_execution(
+                    workflow_execution_id, root_node['id'], "running", 
                     initial_input or {}
                 )
-                node_execution_ids[root_node['id']] = execution_id
+                node_execution_ids[root_node['id']] = node_execution_id
                 
                 # Execute the node
                 result = self.execute_node(root_node, initial_input or {})
                 execution_results[root_node['id']] = result
                 completed_nodes.add(root_node['id'])
                 
-                # Update execution record with result
+                # Update node execution record with result
                 if result['success']:
-                    self.update_execution_record(execution_id, "completed", result['output'])
+                    self.update_node_execution(node_execution_id, "completed", result['output'])
                 else:
-                    self.update_execution_record(execution_id, "failed", error=result.get('error'))
+                    self.update_node_execution(node_execution_id, "failed", error=result.get('error'))
                 
                 # Add connected nodes to queue if their dependencies are met
                 for next_node_id in graph.get(root_node['id'], []):
@@ -334,26 +348,23 @@ class WorkflowExecutor:
                                     output = {'value': output}
                                 input_data.update(output)
                 
-                # Get run index for this node
-                run_index = self.get_next_run_index(workflow_id, current_node['id'])
-                
-                # Create execution record for this node
-                execution_id = self.create_execution_record(
-                    workflow_id, current_node['id'], run_index, "running", 
+                # Create node execution record
+                node_execution_id = self.create_node_execution(
+                    workflow_execution_id, current_node['id'], "running", 
                     input_data
                 )
-                node_execution_ids[current_node['id']] = execution_id
+                node_execution_ids[current_node['id']] = node_execution_id
                 
                 # Execute current node
                 result = self.execute_node(current_node, input_data)
                 execution_results[current_node['id']] = result
                 completed_nodes.add(current_node['id'])
                 
-                # Update execution record with result
+                # Update node execution record with result
                 if result['success']:
-                    self.update_execution_record(execution_id, "completed", result['output'])
+                    self.update_node_execution(node_execution_id, "completed", result['output'])
                 else:
-                    self.update_execution_record(execution_id, "failed", error=result.get('error'))
+                    self.update_node_execution(node_execution_id, "failed", error=result.get('error'))
                 
                 # Add connected nodes to queue
                 for next_node_id in graph.get(current_node['id'], []):
@@ -363,12 +374,17 @@ class WorkflowExecutor:
             # Check if all nodes were executed
             if len(completed_nodes) != len(nodes):
                 error_msg = f"Not all nodes could be executed. Completed: {len(completed_nodes)}, Total: {len(nodes)}"
+                self.update_workflow_execution(workflow_execution_id, "failed", error=error_msg)
                 return {'success': False, 'error': error_msg}
+            
+            # Update workflow execution as completed
+            self.update_workflow_execution(workflow_execution_id, "completed", execution_results)
             
             logger.info(f"Workflow {workflow_id} executed successfully")
             return {
                 'success': True,
-                'execution_ids': node_execution_ids,
+                'workflow_execution_id': workflow_execution_id,
+                'node_execution_ids': node_execution_ids,
                 'results': execution_results,
                 'message': f"Workflow {workflow['name']} executed successfully"
             }
@@ -376,6 +392,7 @@ class WorkflowExecutor:
         except Exception as e:
             error_msg = f"Unexpected error during workflow execution: {str(e)}"
             logger.error(error_msg)
+            self.update_workflow_execution(workflow_execution_id, "failed", error=error_msg)
             return {'success': False, 'error': error_msg}
 
 
@@ -394,7 +411,81 @@ def run_workflow(workflow_id: int, initial_input: Dict[str, Any] = None) -> Dict
     return executor.run_workflow(workflow_id, initial_input)
 
 
-if __name__ == "__main__":
-    # Example usage
-    result = run_workflow(1, {"test": "data"})
+def main():
+    """Main function with command line argument parsing."""
+    parser = argparse.ArgumentParser(
+        description="Run a workflow by its ID with optional initial input data",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  python run_workflow.py                    # Run workflow 1 with no input
+  python run_workflow.py --workflow-id 2    # Run workflow 2 with no input
+  python run_workflow.py --workflow-id 1 --input '{"key": "value"}'  # Run workflow 1 with input data
+  python run_workflow.py -w 3 -i '{"name": "test", "count": 42}'     # Run workflow 3 with input data
+        """
+    )
+    
+    parser.add_argument(
+        '--workflow-id', '-w',
+        type=int,
+        default=1,
+        help='ID of the workflow to execute (default: 1)'
+    )
+    
+    parser.add_argument(
+        '--input', '-i',
+        type=str,
+        help='Initial input data as JSON string (optional)'
+    )
+    
+    parser.add_argument(
+        '--db-path', '-d',
+        type=str,
+        default='data/ai8n.db',
+        help='Path to the database file (default: data/ai8n.db)'
+    )
+    
+    parser.add_argument(
+        '--verbose', '-v',
+        action='store_true',
+        help='Enable verbose logging'
+    )
+    
+    args = parser.parse_args()
+    
+    # Set logging level based on verbose flag
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+    
+    # Parse input data if provided
+    initial_input = None
+    if args.input:
+        try:
+            initial_input = json.loads(args.input)
+        except json.JSONDecodeError as e:
+            print(f"Error: Invalid JSON in input data: {e}", file=sys.stderr)
+            sys.exit(1)
+    
+    # Create executor with custom database path
+    executor = WorkflowExecutor(args.db_path)
+    
+    # Run the workflow
+    print(f"Running workflow {args.workflow_id}...")
+    if initial_input:
+        print(f"Initial input: {json.dumps(initial_input, indent=2)}")
+    
+    result = executor.run_workflow(args.workflow_id, initial_input)
+    
+    # Print the result
+    print("\nWorkflow execution result:")
     print(json.dumps(result, indent=2))
+    
+    # Exit with appropriate code
+    if result.get('success', False):
+        sys.exit(0)
+    else:
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

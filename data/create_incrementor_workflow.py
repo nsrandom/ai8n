@@ -30,7 +30,7 @@ from typing import List, Tuple
 class WorkflowCreator:
     """Creates workflows in the AI8N database."""
     
-    def __init__(self, db_path: str = "./ai8n.db"):
+    def __init__(self, db_path: str = "data/ai8n.db"):
         self.db_path = db_path
     
     def get_db_connection(self):
