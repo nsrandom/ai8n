@@ -8,6 +8,9 @@ A Streamlit-based web interface for visualizing and exploring AI8N workflows.
 - **Interactive Graph Visualization**: View workflow nodes and connections as an interactive graph
 - **Node Details**: Explore individual node properties, parameters, and positions
 - **Connection Information**: See how nodes are connected in the workflow
+- **Execution History**: View execution history for each workflow
+- **Execution Flow Visualization**: See how data flows through nodes during execution
+- **Node Execution Details**: View input/output values for each node in an execution
 - **Real-time Updates**: Automatically reflects changes in the workflow database
 
 ## Requirements
@@ -52,9 +55,13 @@ The app will open in your default web browser at `http://localhost:8501`.
 2. **View the Graph**: The main area shows an interactive graph of the workflow
 3. **Explore Nodes**: Click on the sidebar to see detailed information about each node
 4. **Understand Connections**: View how nodes are connected in the workflow
+5. **View Executions**: Select an execution from the "Execution History" section in the sidebar
+6. **Analyze Execution Flow**: See how data flows through nodes during execution with color-coded status
+7. **Inspect Node Data**: View input and output values for each node in the execution
 
 ## Graph Visualization
 
+### Workflow Graph
 - **Nodes**: Represented as colored circles with node names
 - **Connections**: Shown as arrows between nodes
 - **Colors**: Different node types have different colors:
@@ -64,6 +71,16 @@ The app will open in your default web browser at `http://localhost:8501`.
   - 🟡 LLM (Green)
   - 🟠 Conditional (Yellow)
   - 🟣 Manual (Plum)
+
+### Execution Flow Graph
+- **Node Status Colors**: 
+  - 🟢 Completed (Green)
+  - 🟡 Running (Yellow)
+  - 🔴 Failed (Red)
+  - ⚫ Pending (Gray)
+- **Data Flow**: Green arrows show successful data flow between completed nodes
+- **Node Size**: Executed nodes are larger than non-executed ones
+- **Execution Info**: Shows execution ID, status, and start time
 
 ## Troubleshooting
 
