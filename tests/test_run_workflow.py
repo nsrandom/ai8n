@@ -8,7 +8,7 @@ from unittest.mock import patch, MagicMock
 
 # Add parent directory to path for imports
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from model.run_workflow import WorkflowExecutor, run_workflow
+from model.workflow import WorkflowExecutor, run_workflow
 
 
 class TestWorkflowExecutor(unittest.TestCase):
@@ -384,7 +384,7 @@ class TestRunWorkflowFunction(unittest.TestCase):
                 VALUES (?, ?, ?)
             """, connections)
     
-    @patch('model.run_workflow.WorkflowExecutor')
+    @patch('model.workflow.WorkflowExecutor')
     def test_run_workflow_function(self, mock_executor_class):
         """Test the run_workflow function."""
         # Mock the executor instance
@@ -408,7 +408,7 @@ class TestRunWorkflowFunction(unittest.TestCase):
         mock_executor_class.assert_called_once()
         mock_executor.run_workflow.assert_called_once_with(1, {"test": "data"})
     
-    @patch('model.run_workflow.WorkflowExecutor')
+    @patch('model.workflow.WorkflowExecutor')
     def test_run_workflow_function_no_input(self, mock_executor_class):
         """Test the run_workflow function without initial input."""
         # Mock the executor instance
