@@ -1,6 +1,8 @@
 import sqlite3
 import json
 import logging
+import os
+import subprocess
 from typing import Dict, List, Any, Optional, Tuple
 from datetime import datetime
 from collections import defaultdict, deque
@@ -124,17 +126,33 @@ class WorkflowExecutor:
     def execute_command_node(self, node: Dict[str, Any], input_data: Dict[str, Any], parameters: Dict[str, Any]) -> Dict[str, Any]:
         """Execute a command node - runs external commands or scripts."""
         logger.info(f"Executing command node: {node['name']}")
-        # Placeholder implementation
+
+        # Serialize input_data as a JSON string and add it to the command
+        input_json = json.dumps(input_data)
+        command = parameters['command']
+        working_dir = parameters.get('working_dir', '.')
+        
+        # Add the serialized input as an environment variable INPUT_DATA
+        env = os.environ.copy()
+        env['INPUT_DATA'] = input_json
+        
+        result = subprocess.run(command, shell=True, capture_output=True, text=True, env=env, cwd=working_dir)
+
+        if result.returncode != 0:
+            return {
+                'success': False,
+                'error': result.stderr,
+            }
+
         return {
             'success': True,
-            'output': input_data,
+            'output': result.stdout,
             'message': f"Command node {node['name']} executed successfully"
         }
     
     def execute_constant_node(self, node: Dict[str, Any], input_data: Dict[str, Any], parameters: Dict[str, Any]) -> Dict[str, Any]:
         """Execute a constant node - returns a constant value."""
         logger.info(f"Executing constant node: {node['name']}")
-        # Placeholder implementation
 
         return {
             'success': True,
@@ -303,7 +321,18 @@ class WorkflowExecutor:
                         if prev_node_id in execution_results:
                             prev_result = execution_results[prev_node_id]
                             if prev_result['success']:
-                                input_data.update(prev_result.get('output', {}))
+                                output = prev_result.get('output', {})
+                                # If output is a string (from command nodes), try to parse as JSON
+                                if isinstance(output, str):
+                                    try:
+                                        output = json.loads(output)
+                                    except json.JSONDecodeError:
+                                        # If not valid JSON, wrap in a dict
+                                        output = {'raw_output': output}
+                                elif not isinstance(output, dict):
+                                    # If not a dict, wrap it
+                                    output = {'value': output}
+                                input_data.update(output)
                 
                 # Get run index for this node
                 run_index = self.get_next_run_index(workflow_id, current_node['id'])
