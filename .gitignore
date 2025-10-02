@@ -1,2 +1,4 @@
 .venv/
 data/ai8n.db
+__pycache__/
+

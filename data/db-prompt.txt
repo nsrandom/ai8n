@@ -12,7 +12,7 @@ Node:
 	id (primary key)
 	workflow_id (foreign key to Workflows)
 	name (text)
-	type (text)  -- can be "Command", "Constant", "LLM", "Conditional", "Manual"
+	type (text)  -- can be "Trigger", "Command", "Constant", "LLM", "Conditional", "Manual"
 	parameters (json / text)
 	position (json / text)
 	created_at (timestamp)
@@ -29,10 +29,13 @@ Connections:
 Executions:
 	id (primary key)
 	workflow_id (foreign key to Workflows)
+	node_id (foreign key to Nodes)
+	run_index (int)
 	status (text)
 	started_at (timestamp)
 	ended_at (timestamp)
-	data (json / text)
+	input (json / text)
+	output (json / text)
 	error (json / text)
 
 

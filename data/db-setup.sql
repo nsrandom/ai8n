@@ -38,12 +38,18 @@ CREATE TABLE Connections (
 CREATE TABLE Executions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     workflow_id INTEGER NOT NULL,
+    node_id INTEGER NOT NULL,
+    run_index INTEGER NOT NULL,
     status TEXT NOT NULL,
     started_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     ended_at TIMESTAMP,
-    data TEXT, -- JSON stored as TEXT
+    input TEXT,  -- JSON stored as TEXT for input data
+    output TEXT, -- JSON stored as TEXT for output data
     error TEXT, -- JSON stored as TEXT
-    FOREIGN KEY (workflow_id) REFERENCES Workflows(id) ON DELETE CASCADE
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (workflow_id) REFERENCES Workflows(id) ON DELETE CASCADE,
+    FOREIGN KEY (node_id) REFERENCES Node(id) ON DELETE CASCADE
 );
 
 -- Create indexes for better performance
@@ -51,6 +57,7 @@ CREATE INDEX idx_node_workflow_id ON Node(workflow_id);
 CREATE INDEX idx_connections_from_node ON Connections(from_node_id);
 CREATE INDEX idx_connections_to_node ON Connections(to_node_id);
 CREATE INDEX idx_executions_workflow_id ON Executions(workflow_id);
+CREATE INDEX idx_executions_node_id ON Executions(node_id);
 CREATE INDEX idx_executions_status ON Executions(status);
 CREATE INDEX idx_executions_started_at ON Executions(started_at);
 
@@ -74,4 +81,11 @@ CREATE TRIGGER update_connections_timestamp
     FOR EACH ROW
     BEGIN
         UPDATE Connections SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+    END;
+
+CREATE TRIGGER update_executions_timestamp 
+    AFTER UPDATE ON Executions
+    FOR EACH ROW
+    BEGIN
+        UPDATE Executions SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
     END;
