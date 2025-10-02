@@ -9,6 +9,8 @@ A Streamlit-based web interface for visualizing and exploring AI8N workflows.
 - **Node Details**: Explore individual node properties, parameters, and positions
 - **Connection Information**: See how nodes are connected in the workflow
 - **Execution History**: View execution history for each workflow
+- **Execute Workflows**: Trigger workflow executions directly from the UI
+- **Custom Input Data**: Provide custom JSON input data for workflow execution
 - **Execution Flow Visualization**: See how data flows through nodes during execution
 - **Node Execution Details**: View input/output values for each node in an execution
 - **Real-time Updates**: Automatically reflects changes in the workflow database
@@ -55,9 +57,11 @@ The app will open in your default web browser at `http://localhost:8501`.
 2. **View the Graph**: The main area shows an interactive graph of the workflow
 3. **Explore Nodes**: Click on the sidebar to see detailed information about each node
 4. **Understand Connections**: View how nodes are connected in the workflow
-5. **View Executions**: Select an execution from the "Execution History" section in the sidebar
-6. **Analyze Execution Flow**: See how data flows through nodes during execution with color-coded status
-7. **Inspect Node Data**: View input and output values for each node in the execution
+5. **Execute Workflows**: Use the "Execute Workflow" section in the sidebar to run workflows with custom input
+6. **Quick Execute**: Click "🚀 Execute Now" for quick execution with default input data
+7. **View Executions**: Select an execution from the "Execution History" section in the sidebar
+8. **Analyze Execution Flow**: See how data flows through nodes during execution with color-coded status
+9. **Inspect Node Data**: View input and output values for each node in the execution
 
 ## Graph Visualization
 
@@ -81,6 +85,26 @@ The app will open in your default web browser at `http://localhost:8501`.
 - **Data Flow**: Green arrows show successful data flow between completed nodes
 - **Node Size**: Executed nodes are larger than non-executed ones
 - **Execution Info**: Shows execution ID, status, and start time
+
+## Workflow Execution
+
+### Execute Workflow Section
+- **Input Data Form**: Enter custom JSON input data for the workflow
+- **Default Input**: Pre-filled with sample data (`{"value": 42, "test": "data"}`)
+- **Execute Button**: Triggers workflow execution with the provided input
+- **Real-time Feedback**: Shows success/error messages and execution results
+- **Auto-refresh**: Page automatically refreshes to show new execution
+
+### Quick Execute
+- **One-click Execution**: Execute workflow with default input data
+- **No Configuration**: Perfect for testing and quick runs
+- **Immediate Results**: See execution results instantly
+
+### Execution Results
+- **Success Messages**: Clear feedback when execution succeeds
+- **Error Handling**: Detailed error messages for failed executions
+- **Execution History**: New executions appear in the execution list
+- **Data Flow**: See how your input data flows through the workflow
 
 ## Troubleshooting
 

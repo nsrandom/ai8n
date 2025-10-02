@@ -411,6 +411,50 @@ def main():
         st.error(f"Could not load workflow {selected_workflow_id}")
         return
     
+    # Add workflow execution section
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Execute Workflow")
+    
+    # Input data form
+    with st.sidebar.form("execute_workflow_form"):
+        st.write("**Input Data (JSON):**")
+        default_input = '{"value": 42, "test": "data"}'
+        input_data_text = st.text_area(
+            "Input JSON:",
+            value=default_input,
+            height=100,
+            help="Enter JSON data to pass as input to the workflow"
+        )
+        
+        execute_button = st.form_submit_button("🚀 Execute Workflow", use_container_width=True)
+    
+    # Handle workflow execution
+    if execute_button:
+        try:
+            # Parse input data
+            if input_data_text.strip():
+                input_data = json.loads(input_data_text)
+            else:
+                input_data = {}
+            
+            # Execute the workflow
+            with st.spinner("Executing workflow..."):
+                result = visualizer.executor.run_workflow(selected_workflow_id, input_data)
+            
+            if result.get('success', False):
+                st.sidebar.success("✅ Workflow executed successfully!")
+                st.sidebar.json(result)
+                
+                # Refresh the page to show the new execution
+                st.rerun()
+            else:
+                st.sidebar.error(f"❌ Workflow execution failed: {result.get('error', 'Unknown error')}")
+                
+        except json.JSONDecodeError as e:
+            st.sidebar.error(f"❌ Invalid JSON input: {str(e)}")
+        except Exception as e:
+            st.sidebar.error(f"❌ Execution error: {str(e)}")
+
     # Add execution viewing section
     st.sidebar.markdown("---")
     st.sidebar.subheader("Execution History")
@@ -437,7 +481,12 @@ def main():
     # Main content area
     if execution_data:
         # Show execution view
-        st.subheader("Execution Flow")
+        col_title, col_exec = st.columns([3, 1])
+        with col_title:
+            st.subheader("Execution Flow")
+        with col_exec:
+            if st.button("🔄 Refresh Executions", help="Refresh the execution list"):
+                st.rerun()
         
         # Create and display the execution flow graph
         fig = visualizer.create_execution_flow_graph(execution_data, workflow_data)
@@ -555,7 +604,21 @@ def main():
         col1, col2 = st.columns([2, 1])
         
         with col1:
-            st.subheader("Workflow Graph")
+            col_title, col_exec = st.columns([3, 1])
+            with col_title:
+                st.subheader("Workflow Graph")
+            with col_exec:
+                if st.button("🚀 Execute Now", help="Execute this workflow with default input"):
+                    try:
+                        with st.spinner("Executing workflow..."):
+                            result = visualizer.executor.run_workflow(selected_workflow_id, {"value": 42})
+                        if result.get('success', False):
+                            st.success("✅ Workflow executed successfully!")
+                            st.rerun()
+                        else:
+                            st.error(f"❌ Execution failed: {result.get('error', 'Unknown error')}")
+                    except Exception as e:
+                        st.error(f"❌ Execution error: {str(e)}")
             
             # Create and display the graph
             fig = visualizer.create_workflow_graph(workflow_data)
