@@ -178,6 +178,10 @@ body {
     min-width: 120px;
 }
 
+#executeBtn {
+    justify-content: center;
+}
+
 /* States */
 .loading-state, .error-state, .empty-state {
     display: flex;

@@ -37,10 +37,6 @@ class WorkflowVisualizer {
             this.executeWorkflow();
         });
 
-        // Quick execute
-        document.getElementById('quickExecuteBtn').addEventListener('click', () => {
-            this.quickExecuteWorkflow();
-        });
 
         // Refresh
         document.getElementById('refreshBtn').addEventListener('click', () => {
@@ -613,19 +609,6 @@ class WorkflowVisualizer {
         }
     }
 
-    async quickExecuteWorkflow() {
-        const workflowId = document.getElementById('workflowSelect').value;
-        if (!workflowId) {
-            this.showToast('Please select a workflow first', 'warning');
-            return;
-        }
-        
-        // Set default input data
-        document.getElementById('inputData').value = '{"value": 42, "test": "data"}';
-        
-        // Execute with default data
-        await this.executeWorkflow();
-    }
 
     zoomIn() {
         if (this.zoom) {
