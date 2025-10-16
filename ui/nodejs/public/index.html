@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🔄 AI8N Workflow Visualizer</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <h1><i class="fas fa-project-diagram"></i> AI8N Workflow Visualizer</h1>
+                <div class="header-actions">
+                    <button id="refreshBtn" class="btn btn-secondary">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-layout">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <!-- Workflow Selection -->
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-list"></i> Workflow Selection</h3>
+                    <select id="workflowSelect" class="form-select">
+                        <option value="">Loading workflows...</option>
+                    </select>
+                </div>
+
+                <!-- Execute Workflow -->
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-play"></i> Execute Workflow</h3>
+                    <div class="form-group">
+                        <label for="inputData">Input Data (JSON):</label>
+                        <textarea id="inputData" class="form-textarea" rows="4" 
+                                placeholder='{"value": 42, "test": "data"}'></textarea>
+                    </div>
+                    <div class="button-group">
+                        <button id="executeBtn" class="btn btn-primary">
+                            <i class="fas fa-rocket"></i> Execute
+                        </button>
+                        <button id="quickExecuteBtn" class="btn btn-success">
+                            <i class="fas fa-bolt"></i> Quick Execute
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Execution History -->
+                <div class="sidebar-section">
+                    <h3><i class="fas fa-history"></i> Execution History</h3>
+                    <select id="executionSelect" class="form-select">
+                        <option value="">No executions</option>
+                    </select>
+                </div>
+
+                <!-- Workflow Details -->
+                <div class="sidebar-section" id="workflowDetails" style="display: none;">
+                    <h3><i class="fas fa-info-circle"></i> Workflow Details</h3>
+                    <div id="workflowInfo"></div>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Loading State -->
+                <div id="loadingState" class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading workflow data...</p>
+                </div>
+
+                <!-- Error State -->
+                <div id="errorState" class="error-state" style="display: none;">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>Error</h3>
+                    <p id="errorMessage"></p>
+                    <button id="retryBtn" class="btn btn-primary">Retry</button>
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="empty-state" style="display: none;">
+                    <i class="fas fa-folder-open"></i>
+                    <h3>No Workflows Found</h3>
+                    <p>Create some workflows first using the workflow creation scripts.</p>
+                </div>
+
+                <!-- Workflow Visualization -->
+                <div id="workflowViz" class="workflow-viz" style="display: none;">
+                    <div class="viz-header">
+                        <h2 id="workflowTitle">Workflow Graph</h2>
+                        <div class="viz-controls">
+                            <button id="zoomInBtn" class="btn btn-sm btn-secondary">
+                                <i class="fas fa-search-plus"></i>
+                            </button>
+                            <button id="zoomOutBtn" class="btn btn-sm btn-secondary">
+                                <i class="fas fa-search-minus"></i>
+                            </button>
+                            <button id="resetZoomBtn" class="btn btn-sm btn-secondary">
+                                <i class="fas fa-expand-arrows-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div id="graphContainer" class="graph-container"></div>
+                </div>
+
+                <!-- Execution Details -->
+                <div id="executionDetails" class="execution-details" style="display: none;">
+                    <div class="execution-header">
+                        <h2 id="executionTitle">Execution Details</h2>
+                        <div class="execution-status" id="executionStatus"></div>
+                    </div>
+                    
+                    <div class="execution-content">
+                        <div class="execution-info">
+                            <h3>Execution Summary</h3>
+                            <div id="executionSummary"></div>
+                        </div>
+                        
+                        <div class="node-executions">
+                            <h3>Node Executions</h3>
+                            <div id="nodeExecutionsList"></div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Modal for Node Details -->
+    <div id="nodeModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="nodeModalTitle">Node Details</h3>
+                <button class="modal-close">&times;</button>
+            </div>
+            <div class="modal-body" id="nodeModalBody">
+                <!-- Node details will be populated here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="app.js"></script>
+</body>
+</html>

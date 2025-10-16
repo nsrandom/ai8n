@@ -1,5 +1,6 @@
 .venv/
 data/ai8n.db
 __pycache__/
+node_modules
 
 .env
