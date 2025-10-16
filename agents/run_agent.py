@@ -17,7 +17,7 @@ APP_NAME = "math_agent"
 USER_ID = "asif"
 
 # Load .env file from the parent directory
-dotenv_path=f"{os.path.dirname(os.path.abspath(__file__))}/.env"
+dotenv_path=f"{os.path.dirname(os.path.abspath(__file__))}/../.env"
 print(f"run_agent.py: Loading .env file from: {dotenv_path}")
 load_dotenv(dotenv_path=dotenv_path)
 
