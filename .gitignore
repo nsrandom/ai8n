@@ -2,3 +2,4 @@
 data/ai8n.db
 __pycache__/
 
+.env

@@ -3,3 +3,5 @@ plotly
 pandas
 pytest
 pytest-cov
+google-adk
+google-generativeai
