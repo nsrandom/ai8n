@@ -39,10 +39,6 @@ class WorkflowVisualizer {
             });
         }
 
-        // Refresh
-        document.getElementById('refreshBtn').addEventListener('click', () => {
-            this.loadWorkflows();
-        });
 
         // Retry
         document.getElementById('retryBtn').addEventListener('click', () => {

@@ -16,7 +16,7 @@ class GraphVisualizer {
             .attr('width', width)
             .attr('height', height)
             .attr('viewBox', `0 0 ${width} ${height}`)
-            .style('background', '#f8fafc');
+            .style('background', '#374151');
         
         const g = this.svg.append('g');
         
@@ -120,7 +120,7 @@ class GraphVisualizer {
             nodeGroup.append('circle')
                 .attr('r', radius)
                 .attr('fill', this.getNodeColor(node, nodeExecutionLookup, isExecution))
-                .attr('stroke', '#374151')
+                .attr('stroke', '#6b7280')
                 .attr('stroke-width', 2);
             
             nodeGroup.append('text')
