@@ -32,9 +32,12 @@ class WorkflowVisualizer {
         });
 
         // Execute workflow
-        document.getElementById('executeBtn').addEventListener('click', () => {
-            this.executeWorkflow();
-        });
+        const executeBtn = document.getElementById('executeBtn');
+        if (executeBtn) {
+            executeBtn.addEventListener('click', () => {
+                this.executeWorkflow();
+            });
+        }
 
         // Refresh
         document.getElementById('refreshBtn').addEventListener('click', () => {
@@ -252,7 +255,8 @@ class WorkflowVisualizer {
             return;
         }
         
-        const inputDataText = document.getElementById('inputData').value.trim();
+        const inputDataElement = document.getElementById('inputData');
+        const inputDataText = inputDataElement ? inputDataElement.value.trim() : '';
         let inputData = {};
         
         if (inputDataText) {
