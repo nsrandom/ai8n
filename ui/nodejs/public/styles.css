@@ -258,23 +258,51 @@ body {
     transition: all 0.2s;
 }
 
-.node:hover {
-    transform: scale(1.1);
+.node:hover circle {
+    transform: scale(1.05);
 }
 
 .node circle {
     stroke: white;
-    stroke-width: 2px;
+    stroke-width: 3px;
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+    transition: transform 0.2s ease;
 }
 
 .node text {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    font-size: 12px;
-    font-weight: 500;
+    font-size: 11px;
+    font-weight: 600;
     fill: white;
     text-anchor: middle;
     dominant-baseline: central;
     pointer-events: none;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Node type specific styling */
+.node.constant circle {
+    fill: #3b82f6; /* Blue for constants */
+}
+
+.node.command circle {
+    fill: #10b981; /* Green for commands */
+}
+
+.node.condition circle {
+    fill: #f59e0b; /* Orange for conditions */
+}
+
+.node.loop circle {
+    fill: #8b5cf6; /* Purple for loops */
+}
+
+.node.start circle {
+    fill: #ef4444; /* Red for start nodes */
+}
+
+.node.end circle {
+    fill: #6b7280; /* Gray for end nodes */
 }
 
 .link {

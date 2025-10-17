@@ -6,7 +6,6 @@ class WorkflowVisualizer {
         this.workflows = [];
         this.executions = [];
         this.svg = null;
-        this.simulation = null;
         this.zoom = null;
         
         this.init();
@@ -36,7 +35,6 @@ class WorkflowVisualizer {
         document.getElementById('executeBtn').addEventListener('click', () => {
             this.executeWorkflow();
         });
-
 
         // Refresh
         document.getElementById('refreshBtn').addEventListener('click', () => {
@@ -78,6 +76,7 @@ class WorkflowVisualizer {
         this.showLoading();
         try {
             const response = await fetch('/api/workflows');
+            
             if (!response.ok) throw new Error('Failed to load workflows');
             
             this.workflows = await response.json();
@@ -89,12 +88,19 @@ class WorkflowVisualizer {
                 this.hideStates();
             }
         } catch (error) {
+            console.error('[WorkflowVisualizer] Error loading workflows:', error);
             this.showError('Failed to load workflows: ' + error.message);
         }
     }
 
     populateWorkflowSelect() {
         const select = document.getElementById('workflowSelect');
+        
+        if (!select) {
+            console.error('[WorkflowVisualizer] workflowSelect element not found!');
+            return;
+        }
+        
         select.innerHTML = '<option value="">Select a workflow...</option>';
         
         this.workflows.forEach(workflow => {
@@ -276,6 +282,12 @@ class WorkflowVisualizer {
 
     renderWorkflowGraph() {
         const container = document.getElementById('graphContainer');
+        
+        if (!container) {
+            console.error('[WorkflowVisualizer] graphContainer element not found!');
+            return;
+        }
+        
         container.innerHTML = '';
         
         if (!this.currentWorkflow || !this.currentWorkflow.nodes.length) {
@@ -299,16 +311,20 @@ class WorkflowVisualizer {
     }
 
     createGraph(container, workflowData, isExecution = false) {
-        const width = container.clientWidth;
-        const height = container.clientHeight;
+        const width = container.clientWidth || 800;
+        const height = container.clientHeight || 600;
         
-        // Create SVG
+        container.innerHTML = '';
+        
         this.svg = d3.select(container)
             .append('svg')
             .attr('width', width)
-            .attr('height', height);
+            .attr('height', height)
+            .attr('viewBox', `0 0 ${width} ${height}`)
+            .style('background', '#f8fafc');
         
-        // Create zoom behavior
+        const g = this.svg.append('g');
+        
         this.zoom = d3.zoom()
             .scaleExtent([0.1, 4])
             .on('zoom', (event) => {
@@ -317,13 +333,6 @@ class WorkflowVisualizer {
         
         this.svg.call(this.zoom);
         
-        // Create main group
-        const g = this.svg.append('g');
-        
-        // Prepare data
-        const nodes = workflowData.nodes.map(d => ({ ...d }));
-        
-        // Create node lookup for execution data
         let nodeExecutionLookup = {};
         if (isExecution && this.currentExecution) {
             this.currentExecution.node_executions.forEach(ne => {
@@ -331,22 +340,19 @@ class WorkflowVisualizer {
             });
         }
         
-        // Create node ID to node object lookup
+        const nodes = this.createGridLayout(workflowData.nodes, width, height);
+        
         const nodeLookup = {};
         nodes.forEach(node => {
             nodeLookup[node.id] = node;
         });
         
-        // Transform connections to have source and target properties for D3
         const links = workflowData.connections.map(conn => {
             const sourceNode = nodeLookup[conn.from_node_id];
             const targetNode = nodeLookup[conn.to_node_id];
             
-            if (!sourceNode) {
-                console.warn(`Source node not found for connection ${conn.id}: from_node_id=${conn.from_node_id}`);
-            }
-            if (!targetNode) {
-                console.warn(`Target node not found for connection ${conn.id}: to_node_id=${conn.to_node_id}`);
+            if (!sourceNode || !targetNode) {
+                return null;
             }
             
             return {
@@ -354,85 +360,11 @@ class WorkflowVisualizer {
                 source: sourceNode,
                 target: targetNode
             };
-        }).filter(conn => conn.source && conn.target); // Filter out invalid connections
+        }).filter(conn => conn !== null);
         
-        // Create simulation
-        this.simulation = d3.forceSimulation(nodes)
-            .force('link', d3.forceLink(links).id(d => d.id).distance(100))
-            .force('charge', d3.forceManyBody().strength(-300))
-            .force('center', d3.forceCenter(width / 2, height / 2))
-            .force('collision', d3.forceCollide().radius(30));
+        this.drawConnections(g, links, nodeExecutionLookup, isExecution);
+        this.drawNodes(g, nodes, nodeExecutionLookup, isExecution);
         
-        // Create links
-        const link = g.append('g')
-            .attr('class', 'links')
-            .selectAll('line')
-            .data(links)
-            .enter().append('line')
-            .attr('class', d => {
-                if (isExecution) {
-                    const fromExec = nodeExecutionLookup[d.from_node_id];
-                    const toExec = nodeExecutionLookup[d.to_node_id];
-                    if (fromExec && toExec && fromExec.status === 'completed' && toExec.status === 'completed') {
-                        return 'link success';
-                    }
-                }
-                return 'link';
-            });
-        
-        // Create nodes
-        const node = g.append('g')
-            .attr('class', 'nodes')
-            .selectAll('g')
-            .data(nodes)
-            .enter().append('g')
-            .attr('class', d => {
-                let classes = `node ${d.type.toLowerCase()}`;
-                if (isExecution) {
-                    const nodeExec = nodeExecutionLookup[d.id];
-                    if (nodeExec) {
-                        classes += ` ${nodeExec.status}`;
-                    }
-                }
-                return classes;
-            })
-            .call(d3.drag()
-                .on('start', this.dragstarted.bind(this))
-                .on('drag', this.dragged.bind(this))
-                .on('end', this.dragended.bind(this))
-            )
-            .on('click', (event, d) => {
-                this.showNodeDetails(d, isExecution ? nodeExecutionLookup[d.id] : null);
-            });
-        
-        // Add circles
-        node.append('circle')
-            .attr('r', d => {
-                if (isExecution) {
-                    const nodeExec = nodeExecutionLookup[d.id];
-                    return nodeExec ? 25 : 20;
-                }
-                return 20;
-            });
-        
-        // Add text
-        node.append('text')
-            .text(d => d.name)
-            .attr('dy', 0.35 + 'em');
-        
-        // Update positions on simulation tick
-        this.simulation.on('tick', () => {
-            link
-                .attr('x1', d => d.source.x)
-                .attr('y1', d => d.source.y)
-                .attr('x2', d => d.target.x)
-                .attr('y2', d => d.target.y);
-            
-            node
-                .attr('transform', d => `translate(${d.x},${d.y})`);
-        });
-        
-        // Show appropriate view
         if (isExecution) {
             document.getElementById('workflowViz').style.display = 'none';
             document.getElementById('executionDetails').style.display = 'block';
@@ -442,21 +374,110 @@ class WorkflowVisualizer {
         }
     }
 
-    dragstarted(event, d) {
-        if (!event.active) this.simulation.alphaTarget(0.3).restart();
-        d.fx = d.x;
-        d.fy = d.y;
+    createGridLayout(nodes, width, height) {
+        const nodeCount = nodes.length;
+        if (nodeCount === 0) return [];
+        
+        // Calculate grid dimensions
+        const cols = Math.ceil(Math.sqrt(nodeCount));
+        const rows = Math.ceil(nodeCount / cols);
+        
+        // Calculate spacing
+        const padding = 100;
+        const availableWidth = width - (2 * padding);
+        const availableHeight = height - (2 * padding);
+        const colSpacing = availableWidth / (cols - 1 || 1);
+        const rowSpacing = availableHeight / (rows - 1 || 1);
+        
+        // Position nodes in grid
+        return nodes.map((node, index) => {
+            const row = Math.floor(index / cols);
+            const col = index % cols;
+            
+            return {
+                ...node,
+                x: padding + (col * colSpacing),
+                y: padding + (row * rowSpacing)
+            };
+        });
     }
 
-    dragged(event, d) {
-        d.fx = event.x;
-        d.fy = event.y;
+    drawConnections(container, links, nodeExecutionLookup, isExecution) {
+        const linkGroup = container.append('g').attr('class', 'links');
+        
+        links.forEach(link => {
+            const line = linkGroup.append('line')
+                .attr('x1', link.source.x)
+                .attr('y1', link.source.y)
+                .attr('x2', link.target.x)
+                .attr('y2', link.target.y)
+                .attr('class', 'link');
+            
+            // Style based on execution status
+            if (isExecution) {
+                const fromExec = nodeExecutionLookup[link.from_node_id];
+                const toExec = nodeExecutionLookup[link.to_node_id];
+                if (fromExec && toExec && fromExec.status === 'completed' && toExec.status === 'completed') {
+                    line.attr('class', 'link success');
+                }
+            }
+        });
     }
 
-    dragended(event, d) {
-        if (!event.active) this.simulation.alphaTarget(0);
-        d.fx = null;
-        d.fy = null;
+    drawNodes(container, nodes, nodeExecutionLookup, isExecution) {
+        nodes.forEach(node => {
+            const nodeGroup = container.append('g')
+                .attr('class', `node ${node.type.toLowerCase()}`)
+                .attr('transform', `translate(${node.x}, ${node.y})`)
+                .style('cursor', 'pointer');
+            
+            if (isExecution) {
+                const nodeExec = nodeExecutionLookup[node.id];
+                if (nodeExec) {
+                    nodeGroup.attr('class', `node ${node.type.toLowerCase()} ${nodeExec.status}`);
+                }
+            }
+            
+            const radius = isExecution && nodeExecutionLookup[node.id] ? 40 : 35;
+            nodeGroup.append('circle')
+                .attr('r', radius)
+                .attr('fill', this.getNodeColor(node, nodeExecutionLookup, isExecution))
+                .attr('stroke', '#374151')
+                .attr('stroke-width', 2);
+            
+            nodeGroup.append('text')
+                .text(node.name)
+                .attr('text-anchor', 'middle')
+                .attr('dy', '0.35em')
+                .attr('font-size', '12px')
+                .attr('font-weight', 'bold')
+                .attr('fill', 'white')
+                .style('pointer-events', 'none');
+            
+            nodeGroup.on('click', () => {
+                this.showNodeDetails(node, isExecution ? nodeExecutionLookup[node.id] : null);
+            });
+        });
+    }
+
+    getNodeColor(node, nodeExecutionLookup, isExecution) {
+        if (isExecution && nodeExecutionLookup[node.id]) {
+            const statusColors = {
+                'completed': '#10b981',
+                'running': '#3b82f6',
+                'failed': '#ef4444',
+                'pending': '#f59e0b'
+            };
+            return statusColors[nodeExecutionLookup[node.id].status] || '#6b7280';
+        }
+        
+        const typeColors = {
+            'start': '#10b981',
+            'end': '#ef4444',
+            'process': '#3b82f6',
+            'decision': '#f59e0b'
+        };
+        return typeColors[node.type.toLowerCase()] || '#6b7280';
     }
 
     showNodeDetails(node, nodeExecution = null) {
@@ -597,7 +618,6 @@ class WorkflowVisualizer {
             
             if (result.success) {
                 this.showToast('Workflow executed successfully!', 'success');
-                // Refresh the page to show new execution
                 setTimeout(() => {
                     window.location.reload();
                 }, 1000);
@@ -608,7 +628,6 @@ class WorkflowVisualizer {
             this.showToast(`Execution error: ${error.message}`, 'error');
         }
     }
-
 
     zoomIn() {
         if (this.zoom) {
@@ -678,5 +697,10 @@ class WorkflowVisualizer {
 
 // Initialize the application when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new WorkflowVisualizer();
+    try {
+        const visualizer = new WorkflowVisualizer();
+        window.visualizer = visualizer;
+    } catch (error) {
+        console.error('[App] Error creating WorkflowVisualizer:', error);
+    }
 });
