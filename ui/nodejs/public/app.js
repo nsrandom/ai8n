@@ -42,7 +42,6 @@ class WorkflowVisualizer {
             });
         }
 
-
         // Retry
         document.getElementById('retryBtn').addEventListener('click', () => {
             this.loadWorkflows();

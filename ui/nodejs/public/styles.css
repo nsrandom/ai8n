@@ -402,6 +402,17 @@ body {
     justify-content: space-between;
     align-items: center;
     margin-bottom: 0.75rem;
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+}
+
+.node-execution-header:hover {
+    background-color: rgba(75, 85, 99, 0.1);
+    border-radius: 0.375rem;
+    padding: 0.25rem;
+    margin: -0.25rem;
+    margin-bottom: 0.5rem;
 }
 
 .node-execution-title {
@@ -419,10 +430,32 @@ body {
 .node-execution-details {
     font-size: 0.875rem;
     color: #9ca3af;
+    max-height: 1000px;
+    overflow: hidden;
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+    opacity: 1;
+}
+
+.node-execution-details.collapsed {
+    max-height: 0;
+    opacity: 0;
+    margin-bottom: 0;
 }
 
 .node-execution-details div {
     margin-bottom: 0.5rem;
+}
+
+.collapse-icon {
+    display: inline-block;
+    margin-right: 0.5rem;
+    transition: transform 0.3s ease;
+    font-size: 0.75rem;
+    color: #9ca3af;
+}
+
+.collapse-icon.expanded {
+    transform: rotate(180deg);
 }
 
 /* Modal */

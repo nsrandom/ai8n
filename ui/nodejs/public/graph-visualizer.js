@@ -116,7 +116,7 @@ class GraphVisualizer {
                 }
             }
             
-            const radius = isExecution && nodeExecutionLookup[node.id] ? 40 : 35;
+            const radius = isExecution && nodeExecutionLookup[node.id] ? 60 : 50;
             nodeGroup.append('circle')
                 .attr('r', radius)
                 .attr('fill', this.getNodeColor(node, nodeExecutionLookup, isExecution))

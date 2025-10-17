@@ -61,8 +61,9 @@ class ExecutionDisplay {
             const nodeDiv = document.createElement('div');
             nodeDiv.className = 'node-execution-item';
             nodeDiv.innerHTML = `
-                <div class="node-execution-header">
+                <div class="node-execution-header" onclick="this.parentElement.querySelector('.node-execution-details').classList.toggle('collapsed'); this.querySelector('.collapse-icon').classList.toggle('expanded');">
                     <div class="node-execution-title">
+                        <span class="collapse-icon">▼</span>
                         ${index + 1}. ${nodeExec.node_name} (${nodeExec.node_type})
                     </div>
                     <div class="node-execution-status ${nodeExec.status}">
