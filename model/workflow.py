@@ -35,7 +35,7 @@ class WorkflowExecutor:
                 return None
             
             # Fetch nodes
-            cursor.execute("SELECT * FROM Node WHERE workflow_id = ? ORDER BY id", (workflow_id,))
+            cursor.execute("SELECT * FROM Nodes WHERE workflow_id = ? ORDER BY id", (workflow_id,))
             nodes = [dict(row) for row in cursor.fetchall()]
             
             # Fetch connections
@@ -44,8 +44,8 @@ class WorkflowExecutor:
                        n1.name as from_node_name, 
                        n2.name as to_node_name
                 FROM Connections c
-                JOIN Node n1 ON c.from_node_id = n1.id
-                JOIN Node n2 ON c.to_node_id = n2.id
+                JOIN Nodes n1 ON c.from_node_id = n1.id
+                JOIN Nodes n2 ON c.to_node_id = n2.id
                 WHERE n1.workflow_id = ?
             """, (workflow_id,))
             connections = [dict(row) for row in cursor.fetchall()]

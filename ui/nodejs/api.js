@@ -49,7 +49,7 @@ router.get('/workflows/:id', (req, res) => {
         }
         
         // Get nodes
-        db.all("SELECT * FROM Node WHERE workflow_id = ? ORDER BY id", [workflowId], (err, nodes) => {
+        db.all("SELECT * FROM Nodes WHERE workflow_id = ? ORDER BY id", [workflowId], (err, nodes) => {
             if (err) {
                 res.status(500).json({ error: err.message });
                 return;
@@ -61,8 +61,8 @@ router.get('/workflows/:id', (req, res) => {
                        n1.name as from_node_name, 
                        n2.name as to_node_name
                 FROM Connections c
-                JOIN Node n1 ON c.from_node_id = n1.id
-                JOIN Node n2 ON c.to_node_id = n2.id
+                JOIN Nodes n1 ON c.from_node_id = n1.id
+                JOIN Nodes n2 ON c.to_node_id = n2.id
                 WHERE n1.workflow_id = ?
             `, [workflowId], (err, connections) => {
                 if (err) {
@@ -126,7 +126,7 @@ router.get('/executions/:id', (req, res) => {
         db.all(`
             SELECT ne.*, n.name as node_name, n.type as node_type
             FROM NodeExecutions ne
-            JOIN Node n ON ne.node_id = n.id
+            JOIN Nodes n ON ne.node_id = n.id
             WHERE ne.workflow_execution_id = ?
             ORDER BY ne.started_at
         `, [executionId], (err, nodeExecutions) => {

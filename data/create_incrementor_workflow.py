@@ -63,7 +63,7 @@ class WorkflowCreator:
                 
                 # Create the node
                 cursor.execute("""
-                    INSERT INTO Node (workflow_id, name, type, parameters, position)
+                    INSERT INTO Nodes (workflow_id, name, type, parameters, position)
                     VALUES (?, ?, ?, ?, ?)
                 """, (
                     workflow_id,
@@ -103,7 +103,7 @@ class WorkflowCreator:
             parameters = {"value": start_value}
             
             cursor.execute("""
-                INSERT INTO Node (workflow_id, name, type, parameters, position)
+                INSERT INTO Nodes (workflow_id, name, type, parameters, position)
                 VALUES (?, ?, ?, ?, ?)
             """, (
                 workflow_id,
@@ -150,7 +150,7 @@ class WorkflowCreator:
             print(f"\nWorkflow: {dict(workflow)}")
             
             # Get nodes
-            cursor.execute("SELECT * FROM Node WHERE workflow_id = ? ORDER BY id", (workflow_id,))
+            cursor.execute("SELECT * FROM Nodes WHERE workflow_id = ? ORDER BY id", (workflow_id,))
             nodes = [dict(row) for row in cursor.fetchall()]
             print(f"\nNodes ({len(nodes)}):")
             for node in nodes:
@@ -160,8 +160,8 @@ class WorkflowCreator:
             cursor.execute("""
                 SELECT c.*, n1.name as from_node_name, n2.name as to_node_name
                 FROM Connections c
-                JOIN Node n1 ON c.from_node_id = n1.id
-                JOIN Node n2 ON c.to_node_id = n2.id
+                JOIN Nodes n1 ON c.from_node_id = n1.id
+                JOIN Nodes n2 ON c.to_node_id = n2.id
                 WHERE n1.workflow_id = ?
                 ORDER BY c.id
             """, (workflow_id,))

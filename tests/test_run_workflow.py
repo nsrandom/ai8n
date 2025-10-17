@@ -65,7 +65,7 @@ class TestWorkflowExecutor(unittest.TestCase):
             ]
             
             cursor.executemany("""
-                INSERT INTO Node (id, workflow_id, name, type, parameters, position) 
+                INSERT INTO Nodes (id, workflow_id, name, type, parameters, position) 
                 VALUES (?, ?, ?, ?, ?, ?)
             """, nodes)
             
@@ -297,11 +297,11 @@ class TestWorkflowExecutor(unittest.TestCase):
             cursor = conn.cursor()
             cursor.execute("INSERT INTO Workflows (id, name, active) VALUES (?, ?, ?)", (3, "Circular Workflow", 1))
             cursor.execute("""
-                INSERT INTO Node (id, workflow_id, name, type, parameters, position) 
+                INSERT INTO Nodes (id, workflow_id, name, type, parameters, position) 
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (10, 3, "Node A", "Trigger", '{}', '{"x": 0, "y": 0}'))
             cursor.execute("""
-                INSERT INTO Node (id, workflow_id, name, type, parameters, position) 
+                INSERT INTO Nodes (id, workflow_id, name, type, parameters, position) 
                 VALUES (?, ?, ?, ?, ?, ?)
             """, (11, 3, "Node B", "Command", '{}', '{"x": 100, "y": 0}'))
             cursor.execute("""
@@ -369,7 +369,7 @@ class TestRunWorkflowFunction(unittest.TestCase):
             ]
             
             cursor.executemany("""
-                INSERT INTO Node (id, workflow_id, name, type, parameters, position) 
+                INSERT INTO Nodes (id, workflow_id, name, type, parameters, position) 
                 VALUES (?, ?, ?, ?, ?, ?)
             """, nodes)
             
@@ -477,7 +477,7 @@ class TestWorkflowExecutionIntegration(unittest.TestCase):
             ]
             
             cursor.executemany("""
-                INSERT INTO Node (id, workflow_id, name, type, parameters, position) 
+                INSERT INTO Nodes (id, workflow_id, name, type, parameters, position) 
                 VALUES (?, ?, ?, ?, ?, ?)
             """, nodes)
             
@@ -534,7 +534,7 @@ class TestWorkflowExecutionIntegration(unittest.TestCase):
             ]
             
             cursor.executemany("""
-                INSERT INTO Node (id, workflow_id, name, type, parameters, position) 
+                INSERT INTO Nodes (id, workflow_id, name, type, parameters, position) 
                 VALUES (?, ?, ?, ?, ?, ?)
             """, nodes)
             

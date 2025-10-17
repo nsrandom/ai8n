@@ -90,7 +90,7 @@ class WorkflowVisualizer:
             cursor.execute("""
                 SELECT ne.*, n.name as node_name, n.type as node_type
                 FROM NodeExecutions ne
-                JOIN Node n ON ne.node_id = n.id
+                JOIN Nodes n ON ne.node_id = n.id
                 WHERE ne.workflow_execution_id = ?
                 ORDER BY ne.started_at
             """, (execution_id,))

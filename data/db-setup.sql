@@ -10,8 +10,8 @@ CREATE TABLE Workflows (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Node table
-CREATE TABLE Node (
+-- Nodes table
+CREATE TABLE Nodes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     workflow_id INTEGER NOT NULL,
     name TEXT NOT NULL,
@@ -30,8 +30,8 @@ CREATE TABLE Connections (
     to_node_id INTEGER NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (from_node_id) REFERENCES Node(id) ON DELETE CASCADE,
-    FOREIGN KEY (to_node_id) REFERENCES Node(id) ON DELETE CASCADE
+    FOREIGN KEY (from_node_id) REFERENCES Nodes(id) ON DELETE CASCADE,
+    FOREIGN KEY (to_node_id) REFERENCES Nodes(id) ON DELETE CASCADE
 );
 
 -- WorkflowExecutions table - tracks workflow-level execution
@@ -63,11 +63,11 @@ CREATE TABLE NodeExecutions (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (workflow_execution_id) REFERENCES WorkflowExecutions(id) ON DELETE CASCADE,
-    FOREIGN KEY (node_id) REFERENCES Node(id) ON DELETE CASCADE
+    FOREIGN KEY (node_id) REFERENCES Nodes(id) ON DELETE CASCADE
 );
 
 -- Create indexes for better performance
-CREATE INDEX idx_node_workflow_id ON Node(workflow_id);
+CREATE INDEX idx_node_workflow_id ON Nodes(workflow_id);
 CREATE INDEX idx_connections_from_node ON Connections(from_node_id);
 CREATE INDEX idx_connections_to_node ON Connections(to_node_id);
 CREATE INDEX idx_workflow_executions_workflow_id ON WorkflowExecutions(workflow_id);
@@ -87,10 +87,10 @@ CREATE TRIGGER update_workflows_timestamp
     END;
 
 CREATE TRIGGER update_node_timestamp 
-    AFTER UPDATE ON Node
+    AFTER UPDATE ON Nodes
     FOR EACH ROW
     BEGIN
-        UPDATE Node SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
+        UPDATE Nodes SET updated_at = CURRENT_TIMESTAMP WHERE id = NEW.id;
     END;
 
 CREATE TRIGGER update_connections_timestamp 
