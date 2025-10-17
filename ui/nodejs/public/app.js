@@ -14,6 +14,9 @@ class WorkflowVisualizer {
     init() {
         this.setupEventListeners();
         this.loadWorkflows();
+        
+        // Check for workflow ID in URL
+        this.checkUrlForWorkflowId();
     }
 
     setupEventListeners() {
@@ -346,6 +349,41 @@ class WorkflowVisualizer {
                 toast.parentNode.removeChild(toast);
             }
         }, 5000);
+    }
+
+    checkUrlForWorkflowId() {
+        // Extract workflow ID from URL path
+        const path = window.location.pathname;
+        const workflowMatch = path.match(/^\/workflow\/(\d+)$/);
+        
+        if (workflowMatch) {
+            const workflowId = workflowMatch[1];
+            console.log('[WorkflowVisualizer] Found workflow ID in URL:', workflowId);
+            
+            // Wait for workflows to load, then auto-select
+            const checkWorkflowsLoaded = () => {
+                if (this.workflows.length > 0) {
+                    // Check if the workflow exists
+                    const workflow = this.workflows.find(w => w.id == workflowId);
+                    if (workflow) {
+                        // Set the select value and load the workflow
+                        const select = document.getElementById('workflowSelect');
+                        if (select) {
+                            select.value = workflowId;
+                            this.loadWorkflow(workflowId);
+                        }
+                    } else {
+                        console.warn('[WorkflowVisualizer] Workflow ID', workflowId, 'not found in available workflows');
+                        this.showError(`Workflow with ID ${workflowId} not found`);
+                    }
+                } else {
+                    // Retry after a short delay
+                    setTimeout(checkWorkflowsLoaded, 100);
+                }
+            };
+            
+            checkWorkflowsLoaded();
+        }
     }
 }
 
