@@ -75,11 +75,11 @@ class ExecutionDisplay {
                     <div><strong>Ended:</strong> ${nodeExec.ended_at ? new Date(nodeExec.ended_at).toLocaleString() : 'N/A'}</div>
                     ${nodeExec.input ? `
                         <div><strong>Input:</strong></div>
-                        <div class="json-display">${JSON.stringify(JSON.parse(nodeExec.input), null, 2)}</div>
+                        <div class="json-display">${this.formatJsonDisplay(nodeExec.input)}</div>
                     ` : ''}
                     ${nodeExec.output ? `
                         <div><strong>Output:</strong></div>
-                        <div class="json-display">${JSON.stringify(JSON.parse(nodeExec.output), null, 2)}</div>
+                        <div class="json-display">${this.formatJsonDisplay(nodeExec.output)}</div>
                     ` : ''}
                     ${nodeExec.error ? `
                         <div><strong>Error:</strong></div>
@@ -181,7 +181,7 @@ class ExecutionDisplay {
             content += `
                 <div class="node-detail-item">
                     <strong>Input:</strong>
-                    <div class="json-display">${JSON.stringify(JSON.parse(nodeExecution.input), null, 2)}</div>
+                    <div class="json-display">${this.formatJsonDisplay(nodeExecution.input)}</div>
                 </div>
             `;
         }
@@ -190,7 +190,7 @@ class ExecutionDisplay {
             content += `
                 <div class="node-detail-item">
                     <strong>Output:</strong>
-                    <div class="json-display">${JSON.stringify(JSON.parse(nodeExecution.output), null, 2)}</div>
+                    <div class="json-display">${this.formatJsonDisplay(nodeExecution.output)}</div>
                 </div>
             `;
         }
@@ -219,5 +219,31 @@ class ExecutionDisplay {
     showWorkflowView() {
         document.getElementById('workflowViz').style.display = 'block';
         document.getElementById('executionDetails').style.display = 'none';
+    }
+
+    formatJsonDisplay(jsonString) {
+        try {
+            // First, try to parse the JSON string
+            let parsed = JSON.parse(jsonString);
+            
+            // If the parsed result is a string, it might be double-encoded JSON
+            if (typeof parsed === 'string') {
+                try {
+                    // Try to parse it again in case it's double-encoded
+                    const doubleParsed = JSON.parse(parsed);
+                    return JSON.stringify(doubleParsed, null, 2);
+                } catch (e) {
+                    // If it's not double-encoded, handle escaped characters
+                    const unescaped = parsed.replace(/\\n/g, '\n').replace(/\\"/g, '"');
+                    return JSON.stringify(unescaped, null, 2);
+                }
+            }
+            
+            // Otherwise, format normally
+            return JSON.stringify(parsed, null, 2);
+        } catch (e) {
+            // If JSON parsing fails, return the original string
+            return jsonString;
+        }
     }
 }
